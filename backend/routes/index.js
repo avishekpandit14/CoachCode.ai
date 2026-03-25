@@ -30,3 +30,7 @@ router.use("/contests", contestRoutes);
 router.use("/notes", noteRoutes);
 
 module.exports = router;
+
+const quizRoutes = require("./quizRoutes");
+
+router.use("/quizzes", quizRoutes);

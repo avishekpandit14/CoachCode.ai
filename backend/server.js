@@ -6,6 +6,7 @@ const fs = require("fs");
 const { connectDB } = require("./config/db");
 const routes = require("./routes");
 const { helmetMiddleware, generalLimiter, authLimiter } = require("./middleware/security");
+
 const {
   User,
   Subject,
@@ -24,6 +25,12 @@ const {
   Note,
   NoteFolder,
   FeatureFlag,
+
+  // 🔥 ADD THESE (IMPORTANT)
+  Quiz,
+  QuizQuestion,
+  Attempt,
+
 } = require("./models");
 
 const app = express();
@@ -44,6 +51,7 @@ app.get("/", (req, res) => res.json({ message: "CoachCode.ai API", version: "2.0
 app.use("/api/auth", authLimiter);
 app.use("/api", routes);
 
+// Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
@@ -54,15 +62,48 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
+// 🔥 FIXED SYNC MODELS
 const syncModels = async () => {
-  const models = [User, Subject, Material, Question, QuestionAttempt, Test, TestQuestion, TestAttempt, Roadmap, RoadmapProgress, Bookmark, Announcement, Contest, ContestSubmission, Note, NoteFolder, FeatureFlag];
-  for (const M of models) await M.sync({alter: true });
+  const models = [
+    User,
+    Subject,
+    Material,
+    Question,
+    QuestionAttempt,
+    Test,
+    TestQuestion,
+    TestAttempt,
+    Roadmap,
+    RoadmapProgress,
+    Bookmark,
+    Announcement,
+    Contest,
+    ContestSubmission,
+    Note,
+    NoteFolder,
+    FeatureFlag,
+
+    // 🔥 MOST IMPORTANT
+    Quiz,
+    QuizQuestion,
+    Attempt,
+  ];
+
+  for (const M of models) {
+    await M.sync({ alter: true });
+  }
+
   console.log("All tables synced");
 };
 
+// Start server
 connectDB()
   .then(() => syncModels())
-  .then(() => app.listen(PORT, () => console.log(`Server running on port ${PORT}`)))
+  .then(() =>
+    app.listen(PORT, () =>
+      console.log(`Server running on port ${PORT}`)
+    )
+  )
   .catch((err) => {
     console.error("Startup failed:", err);
     process.exit(1);
