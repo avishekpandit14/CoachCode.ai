@@ -36,7 +36,7 @@ Create a MySQL database (e.g. `coachcode_db`) and set `DB_NAME`, `DB_USER`, `DB_
 - **frontend/** — React (Vite), AuthContext, protected and role-based routes, dashboard and section pages.
 - **ARCHITECTURE.md** — System design, database schema, API routes, middleware, and development roadmap.
 
-## Roles
+## Roles 
 
 - **Student** — Materials (read), Practice, Mock tests, Roadmap, Bookmarks, Notes, Announcements, Contests.
 - **Faculty** — Same as student + upload materials, add questions, create tests, post announcements, create contests.
