@@ -1,134 +1,156 @@
-const { Quiz, QuizQuestion, Attempt, User } = require("../models");
+const { Quiz, QuizQuestion, Attempt, Subject, User, sequelize } = require("../models");
 
-// ✅ Create Quiz
+const validateQuizPayload = ({ title, subjectId, durationMinutes }) => {
+  if (!title || !String(title).trim()) return "Quiz title is required.";
+  if (!subjectId) return "Subject is required.";
+  if (!durationMinutes || Number(durationMinutes) < 1) return "Duration must be at least 1 minute.";
+  return null;
+};
+
 exports.createQuiz = async (req, res) => {
   try {
+    const err = validateQuizPayload(req.body);
+    if (err) return res.status(400).json({ success: false, message: err });
+
     const quiz = await Quiz.create({
-      title: req.body.title,
-      description: req.body.description,
-      subjectId: req.body.subjectId,
-      createdBy: req.user?.id || null,
+      title: String(req.body.title).trim(),
+      description: req.body.description || "",
+      subjectId: parseInt(req.body.subjectId, 10),
+      durationMinutes: parseInt(req.body.durationMinutes, 10),
+      allowMultipleAttempts: req.body.allowMultipleAttempts !== false,
+      randomizeQuestions: req.body.randomizeQuestions === true,
+      randomizeOptions: req.body.randomizeOptions === true,
+      createdBy: req.user.id,
+      isPublished: false,
+      status: "draft",
     });
-
-    res.json({ success: true, data: quiz });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(201).json({ success: true, data: quiz });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ✅ Add Questions
-exports.addQuestions = async (req, res) => {
+exports.updateQuiz = async (req, res) => {
   try {
-    const { questions } = req.body;
+    const quiz = await Quiz.findByPk(req.params.id);
+    if (!quiz) return res.status(404).json({ success: false, message: "Quiz not found." });
 
-    const data = questions.map(q => ({
-      quizId: req.params.id,
-      questionText: q.questionText,
-      options: q.options,
-      correctAnswer: q.correctAnswer,
-    }));
-
-    await QuizQuestion.bulkCreate(data);
-
-    res.json({ success: true, message: "Questions added" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const fields = ["title", "description", "durationMinutes", "allowMultipleAttempts", "randomizeQuestions", "randomizeOptions", "status"];
+    for (const key of fields) {
+      if (req.body[key] !== undefined) quiz[key] = req.body[key];
+    }
+    if (req.body.subjectId !== undefined) quiz.subjectId = parseInt(req.body.subjectId, 10);
+    if (quiz.status === "published") quiz.isPublished = true;
+    if (quiz.status !== "published") quiz.isPublished = false;
+    await quiz.save();
+    return res.json({ success: true, data: quiz });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ✅ Publish Quiz
 exports.publishQuiz = async (req, res) => {
   try {
-    await Quiz.update(
-      { isPublished: true },
-      { where: { id: req.params.id } }
-    );
-
-    res.json({ success: true, message: "Quiz published" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const quiz = await Quiz.findByPk(req.params.id, { include: [QuizQuestion] });
+    if (!quiz) return res.status(404).json({ success: false, message: "Quiz not found." });
+    if (!quiz.QuizQuestions?.length) {
+      return res.status(400).json({ success: false, message: "Add at least one question before publishing." });
+    }
+    quiz.status = "published";
+    quiz.isPublished = true;
+    await quiz.save();
+    return res.json({ success: true, message: "Quiz published.", data: quiz });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ✅ Get all quizzes (Student)
+exports.deleteQuiz = async (req, res) => {
+  const txn = await sequelize.transaction();
+  try {
+    const quizId = parseInt(req.params.id, 10);
+    const quiz = await Quiz.findByPk(quizId, { transaction: txn });
+    if (!quiz) {
+      await txn.rollback();
+      return res.status(404).json({ success: false, message: "Quiz not found." });
+    }
+    await Attempt.destroy({ where: { quizId }, transaction: txn });
+    await QuizQuestion.destroy({ where: { quizId }, transaction: txn });
+    await quiz.destroy({ transaction: txn });
+    await txn.commit();
+    return res.json({ success: true, message: "Quiz deleted successfully." });
+  } catch (error) {
+    await txn.rollback();
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 exports.getQuizzes = async (req, res) => {
   try {
+    const isStaff = req.user.role === "admin" || req.user.role === "faculty";
+    const where = isStaff ? {} : { status: "published", isPublished: true };
     const quizzes = await Quiz.findAll({
-      where: { isPublished: true },
+      where,
+      attributes: ["id", "title", "description", "durationMinutes", "status", "allowMultipleAttempts", "randomizeQuestions", "randomizeOptions", "createdAt", "updatedAt"],
+      include: [
+        { model: Subject, attributes: ["id", "name"], required: false },
+        { model: User, attributes: ["id", "name"], required: false },
+      ],
+      order: [["createdAt", "DESC"]],
     });
-
-    res.json({ success: true, data: quizzes });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    return res.json({ success: true, data: quizzes });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ✅ Get single quiz with questions
+const shuffle = (arr) => {
+  const clone = [...arr];
+  for (let i = clone.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [clone[i], clone[j]] = [clone[j], clone[i]];
+  }
+  return clone;
+};
+
 exports.getQuizById = async (req, res) => {
   try {
     const quiz = await Quiz.findByPk(req.params.id, {
-      include: QuizQuestion,
+      include: [{ model: QuizQuestion }, { model: Subject, attributes: ["id", "name"], required: false }],
     });
+    if (!quiz) return res.status(404).json({ success: false, message: "Quiz not found." });
 
-    res.json({ success: true, data: quiz });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
+    const isStudent = req.user.role === "student";
+    if (isStudent && (quiz.status !== "published" || !quiz.isPublished)) {
+      return res.status(403).json({ success: false, message: "Quiz is not available." });
+    }
 
-// ✅ Submit Quiz
-exports.submitQuiz = async (req, res) => {
-  try {
-    const { answers } = req.body;
+    let questions = quiz.QuizQuestions.map((q) => ({
+      id: q.id,
+      questionText: q.questionText,
+      options: q.options,
+      correctAnswer: isStudent ? undefined : q.correctAnswer,
+      difficulty: q.difficulty,
+    }));
+    if (isStudent && quiz.randomizeQuestions) questions = shuffle(questions);
+    if (isStudent && quiz.randomizeOptions) {
+      questions = questions.map((q) => ({ ...q, options: shuffle(q.options) }));
+    }
 
-    const questions = await QuizQuestion.findAll({
-      where: { quizId: req.params.id },
-    });
-
-    let score = 0;
-
-    const result = questions.map(q => {
-      const selected = answers[q.id];
-      const isCorrect = selected === q.correctAnswer;
-
-      if (isCorrect) score++;
-
-      return {
-        questionId: q.id,
-        correctAnswer: q.correctAnswer,
-        selected,
-        isCorrect,
-      };
-    });
-
-    await Attempt.create({
-      quizId: req.params.id,
-      studentId: req.user?.id || 1,
-      answers,
-      score,
-    });
-
-    res.json({
+    return res.json({
       success: true,
-      score,
-      total: questions.length,
-      result,
+      data: {
+        id: quiz.id,
+        title: quiz.title,
+        description: quiz.description,
+        durationMinutes: quiz.durationMinutes,
+        status: quiz.status,
+        allowMultipleAttempts: quiz.allowMultipleAttempts,
+        Subject: quiz.Subject,
+        QuizQuestions: questions,
+      },
     });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-// ✅ Teacher Dashboard
-exports.getAttempts = async (req, res) => {
-  try {
-    const attempts = await Attempt.findAll({
-      where: { quizId: req.params.id },
-      include: [{ model: User, attributes: ["id", "name", "email"] }],
-    });
-
-    res.json({ success: true, data: attempts });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

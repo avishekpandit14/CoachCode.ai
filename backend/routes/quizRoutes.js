@@ -1,25 +1,28 @@
 const router = require("express").Router();
 const quizController = require("../controllers/quizController");
+const quizQuestionController = require("../controllers/quizQuestionController");
+const quizAttemptController = require("../controllers/quizAttemptController");
+const { authenticate, requireRole } = require("../middleware/auth");
 
-// Create quiz
-router.post("/", quizController.createQuiz);
+// Quiz CRUD
+router.post("/", authenticate, requireRole(["admin", "faculty"]), quizController.createQuiz);
+router.put("/:id", authenticate, requireRole(["admin", "faculty"]), quizController.updateQuiz);
+router.put("/:id/publish", authenticate, requireRole(["admin", "faculty"]), quizController.publishQuiz);
+router.delete("/:id", authenticate, requireRole(["admin", "faculty"]), quizController.deleteQuiz);
 
-// Add questions
-router.post("/:id/questions", quizController.addQuestions);
+// Quiz list/details
+router.get("/", authenticate, quizController.getQuizzes);
+router.get("/:id", authenticate, quizController.getQuizById);
 
-// Publish quiz
-router.put("/:id/publish", quizController.publishQuiz);
+// Question management
+router.put("/:id/questions", authenticate, requireRole(["admin", "faculty"]), quizQuestionController.replaceQuestions);
 
-// Get quizzes
-router.get("/", quizController.getQuizzes);
+// Attempt flow
+router.post("/:id/attempt", authenticate, requireRole(["student"]), quizAttemptController.startAttempt);
+router.put("/:id/attempt/:attemptId/autosave", authenticate, requireRole(["student"]), quizAttemptController.autoSaveAttempt);
+router.post("/:id/submit", authenticate, requireRole(["student"]), quizAttemptController.submitQuiz);
 
-// Get quiz
-router.get("/:id", quizController.getQuizById);
-
-// Submit quiz
-router.post("/:id/submit", quizController.submitQuiz);
-
-// Teacher dashboard
-router.get("/:id/attempts", quizController.getAttempts);
+// Faculty analytics
+router.get("/:id/attempts", authenticate, requireRole(["admin", "faculty"]), quizAttemptController.getAttempts);
 
 module.exports = router;

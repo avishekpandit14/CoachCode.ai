@@ -16,7 +16,7 @@ const LANGUAGE_IDS = {
 
 const getLanguageId = (lang) => LANGUAGE_IDS[lang?.toLowerCase()] ?? 71;
 
-const createSubmission = async (sourceCode, language, stdin = "") => {
+const createSubmission = async (sourceCode, language, stdin = "", limits = {}) => {
   const headers = { "Content-Type": "application/json" };
   if (JUDGE0_KEY) headers["X-Auth-Token"] = JUDGE0_KEY;
 
@@ -26,8 +26,8 @@ const createSubmission = async (sourceCode, language, stdin = "") => {
       source_code: sourceCode,
       language_id: getLanguageId(language),
       stdin: stdin,
-      cpu_time_limit: 5,
-      memory_limit: 128000,
+      cpu_time_limit: limits.cpuTimeLimit ?? 5,
+      memory_limit: limits.memoryLimit ?? 128000,
     },
     { headers, timeout: 30000 }
   );

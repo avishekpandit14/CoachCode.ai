@@ -18,7 +18,6 @@ import TestAttempt from "./pages/tests/TestAttempt";
 import MockTest from "./pages/tests/MockTest";
 import QuizAttempt from "./pages/tests/QuizAttempt";
 import QuizResult from "./pages/tests/QuizResult";
-import CreateQuiz from "./pages/tests/CreateQuiz";
 
 import Roadmap from "./pages/roadmap/Roadmap";
 import Bookmarks from "./pages/bookmarks/Bookmarks";
@@ -68,16 +67,6 @@ export default function App() {
         <Route path="mock-test" element={<MockTest />} />
         <Route path="quiz/:id" element={<QuizAttempt />} />
         <Route path="quiz/:id/result" element={<QuizResult />} />
-
-        {/* 🔥 CREATE QUIZ (ADMIN/FACULTY ONLY) */}
-        <Route
-          path="create-quiz"
-          element={
-            <RoleRoute allowedRoles={["admin", "faculty"]}>
-              <CreateQuiz />
-            </RoleRoute>
-          }
-        />
 
         {/* OTHER */}
         <Route path="roadmap" element={<Roadmap />} />

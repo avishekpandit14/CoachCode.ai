@@ -58,10 +58,9 @@ exports.create = async (req, res) => {
 
 exports.syncProgress = async (req, res) => {
   try {
-    const { Roadmap } = require("../models");
     const roadmaps = await Roadmap.findAll({ attributes: ["id"] });
     for (const r of roadmaps) {
-      const [progress] = await RoadmapProgress.findOrCreate({
+      await RoadmapProgress.findOrCreate({
         where: { userId: req.user.id, roadmapId: r.id },
         defaults: { status: "not_started" },
       });

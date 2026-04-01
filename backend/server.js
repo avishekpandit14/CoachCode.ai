@@ -13,6 +13,7 @@ const {
   Material,
   Question,
   QuestionAttempt,
+  QuestionTestCase,
   Test,
   TestQuestion,
   TestAttempt,
@@ -70,6 +71,7 @@ const syncModels = async () => {
     Material,
     Question,
     QuestionAttempt,
+    QuestionTestCase,
     Test,
     TestQuestion,
     TestAttempt,
@@ -90,7 +92,7 @@ const syncModels = async () => {
   ];
 
   for (const M of models) {
-    await M.sync({ alter: true });
+    await M.sync();
   }
 
   console.log("All tables synced");

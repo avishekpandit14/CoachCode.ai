@@ -1,4 +1,4 @@
-const { Test, TestQuestion, Question, User } = require("../models");
+const { Test, TestQuestion, Question, User, TestAttempt } = require("../models");
 
 exports.list = async (req, res) => {
   try {
@@ -88,7 +88,6 @@ exports.remove = async (req, res) => {
 
 exports.startAttempt = async (req, res) => {
   try {
-    const { TestAttempt } = require("../models");
     const test = await Test.findByPk(req.params.id);
     if (!test) return res.status(404).json({ success: false, message: "Test not found." });
     const attempt = await TestAttempt.create({
@@ -107,7 +106,6 @@ exports.startAttempt = async (req, res) => {
 
 exports.submitAttempt = async (req, res) => {
   try {
-    const { TestAttempt } = require("../models");
     const { attemptId, score, totalMarks, answers } = req.body;
     const attempt = await TestAttempt.findOne({
       where: { id: attemptId, userId: req.user.id },

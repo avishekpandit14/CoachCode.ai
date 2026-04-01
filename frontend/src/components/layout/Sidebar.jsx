@@ -28,7 +28,6 @@ const facultyNav = [
   { to: "/roadmap", label: "Roadmap" },
   { to: "/announcements", label: "Announcements" },
   { to: "/contests", label: "Contests" },
-  { to: "/create-quiz", label: "Create Quiz" },
 ];
 
 const adminNav = [

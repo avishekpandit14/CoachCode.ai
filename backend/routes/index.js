@@ -12,6 +12,8 @@ const contestRoutes = require("./contestRoutes");
 const noteRoutes = require("./noteRoutes");
 const compilerRoutes = require("./compilerRoutes");
 const analyticsRoutes = require("./analyticsRoutes");
+const quizRoutes = require("./quizRoutes");
+const testCaseRoutes = require("./testCaseRoutes");
 
 const router = express.Router();
 
@@ -28,9 +30,7 @@ router.use("/bookmarks", bookmarkRoutes);
 router.use("/announcements", announcementRoutes);
 router.use("/contests", contestRoutes);
 router.use("/notes", noteRoutes);
+router.use("/quizzes", quizRoutes);
+router.use("/testcases", testCaseRoutes);
 
 module.exports = router;
-
-const quizRoutes = require("./quizRoutes");
-
-router.use("/quizzes", quizRoutes);

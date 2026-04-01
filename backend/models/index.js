@@ -6,6 +6,7 @@ const Subject = require("./Subject");
 const Material = require("./Material");
 const Question = require("./Question");
 const QuestionAttempt = require("./QuestionAttempt");
+const QuestionTestCase = require("./QuestionTestCase");
 const Test = require("./Test");
 const TestQuestion = require("./TestQuestion");
 const TestAttempt = require("./TestAttempt");
@@ -53,9 +54,12 @@ Material.belongsTo(Subject, { foreignKey: "subjectId" });
 
 Question.belongsTo(User, { foreignKey: "createdById" });
 Question.belongsTo(Subject, { foreignKey: "subjectId" });
+Question.hasMany(QuestionAttempt, { foreignKey: "questionId" });
+Question.hasMany(QuestionTestCase, { foreignKey: "questionId", as: "TestCases" });
 
 QuestionAttempt.belongsTo(User, { foreignKey: "userId" });
 QuestionAttempt.belongsTo(Question, { foreignKey: "questionId" });
+QuestionTestCase.belongsTo(Question, { foreignKey: "questionId" });
 
 Test.belongsTo(User, { foreignKey: "createdById" });
 
@@ -131,6 +135,7 @@ const models = {
   Material,
   Question,
   QuestionAttempt,
+  QuestionTestCase,
   Test,
   TestQuestion,
   TestAttempt,

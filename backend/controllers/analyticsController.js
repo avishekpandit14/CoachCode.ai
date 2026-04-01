@@ -1,5 +1,4 @@
 const analyticsService = require("../services/analyticsService");
-const { requireRole } = require("../middleware/auth");
 
 exports.dashboard = async (req, res) => {
   try {
@@ -13,6 +12,15 @@ exports.dashboard = async (req, res) => {
 exports.weeklyGrowth = async (req, res) => {
   try {
     const data = await analyticsService.getWeeklyGrowth();
+    return res.json({ success: true, data });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.studentDashboard = async (req, res) => {
+  try {
+    const data = await analyticsService.getStudentDashboardStats(req.user.id);
     return res.json({ success: true, data });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
