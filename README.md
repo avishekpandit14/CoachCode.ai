@@ -22,7 +22,7 @@ Server runs at `http://localhost:5000`. API base: `http://localhost:5000/api`.
 cd frontend
 npm install
 npm run dev
-```
+``` 
 
 App runs at `http://localhost:5173`. Vite proxies `/api` and `/uploads` to the backend.
 
